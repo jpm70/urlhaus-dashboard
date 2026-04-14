@@ -136,12 +136,10 @@ footer a:hover{text-decoration:underline}
       <div class="map-wrap">
         <svg id="svgmap" viewBox="0 0 960 500" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
           <rect width="960" height="500" fill="var(--ocean)"/>
-          <!-- graticule lines -->
           <g class="graticule">
             <path d="M0,83.3h960 M0,166.7h960 M0,250h960 M0,333.3h960 M0,416.7h960"/>
             <path d="M80,0v500 M160,0v500 M240,0v500 M320,0v500 M400,0v500 M480,0v500 M560,0v500 M640,0v500 M720,0v500 M800,0v500 M880,0v500"/>
           </g>
-          <!-- equator -->
           <line class="equator" x1="0" y1="250" x2="960" y2="250"/>
           <!-- Real Natural Earth 110m country paths -->
           <path class="land" d="M960.0,294.6L960.0,296.0L958.3,296.7L956.6,297.3L956.3,296.2L957.6,295.6L958.4,295.5L960.0,294.6ZM955.0,298.6L955.7,298.2L956.6,299.0L956.1,300.4L954.5,300.8L953.0,300.5L952.8,299.2L953.8,298.3L955.0,298.6ZM0.6,294.5L0.2,295.8L0.0,296.0L0.0,294.6L0.6,294.5Z"/>
@@ -322,6 +320,7 @@ footer a:hover{text-decoration:underline}
 <path class="land" d="M315.5,220.1L317.1,219.8L317.6,219.8L317.5,221.9L315.3,222.2L314.8,222.0L315.6,221.2L315.5,220.1Z"/>
 <path class="land" d="M562.2,240.3L559.9,238.4L559.2,237.2L557.8,237.8L556.5,237.6L555.8,238.1L554.6,237.8L553.0,235.5L552.6,234.6L550.6,233.5L549.9,231.8L548.8,230.6L547.0,229.2L547.0,228.3L545.5,227.1L543.7,226.1L544.5,225.8L545.4,225.2L546.1,222.7L546.9,221.5L548.8,221.1L549.2,221.8L550.6,223.5L551.3,223.7L552.3,223.2L554.2,223.3L554.6,223.9L557.2,223.9L557.3,223.3L558.7,222.8L559.0,222.0L560.0,221.4L562.2,223.0L563.6,222.7L564.9,220.7L566.4,219.2L566.2,217.6L565.5,216.7L567.1,216.6L567.3,216.0L568.6,216.2L568.2,218.2L568.6,220.2L569.9,221.3L570.2,222.3L570.2,223.7L570.6,223.7L570.6,225.9L570.2,226.7L568.8,226.8L567.9,228.4L569.5,228.6L570.9,229.9L571.3,231.0L572.6,231.7L574.1,234.7L572.3,236.5L570.7,238.2L569.0,239.5L567.2,239.5L565.0,240.1L563.3,239.5L562.2,240.3Z"/>
           <!-- dots layer -->
+          
           <g id="mapDots"></g>
         </svg>
       </div>
@@ -363,18 +362,16 @@ function toggleTheme(){
 const NS='http://www.w3.org/2000/svg';
 const mapDots=document.getElementById('mapDots');
 
-function ll2xy(lat,lon){
-  return [((lon+180)/360)*960, ((90-lat)/180)*500];
-}
+function ll2xy(lat,lon){return[((lon+180)/360)*960,((90-lat)/180)*500];}
 function addDot(lat,lon,online){
-  const [cx,cy]=ll2xy(lat,lon);
+  const[cx,cy]=ll2xy(lat??((Math.random()*120)-60),lon??((Math.random()*320)-160));
   const col=online?'#ff3c5c':'#00c8ff';
-  ['ripple','mcore'].forEach((cls,i)=>{
+  [['ripple',true],['mcore',false]].forEach(([cls,isRing])=>{
     const c=document.createElementNS(NS,'circle');
-    c.setAttribute('cx',cx);c.setAttribute('cy',cy);
-    c.setAttribute('r',i===0?3:2.5);
-    if(i===0){c.setAttribute('fill','none');c.setAttribute('stroke',col);c.setAttribute('class','ripple');}
-    else{c.setAttribute('fill',col);c.setAttribute('class','mcore');}
+    c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',isRing?3:2.5);
+    if(isRing){c.setAttribute('fill','none');c.setAttribute('stroke',col);}
+    else{c.setAttribute('fill',col);}
+    c.setAttribute('class',cls);
     mapDots.appendChild(c);
     setTimeout(()=>{try{mapDots.removeChild(c)}catch(e){}},2100);
   });
@@ -385,8 +382,7 @@ function renderBars(){
   const s=Object.entries(fc).sort((a,b)=>b[1]-a[1]).slice(0,9);
   if(!s.length)return;
   const mx=s[0][1]||1;
-  const bc=document.getElementById('barChart');
-  bc.innerHTML='';
+  const bc=document.getElementById('barChart');bc.innerHTML='';
   s.forEach(([l,v])=>{
     const row=document.createElement('div');row.className='bar-row';
     row.innerHTML=`<div class="bar-label" title="${l}">${l}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.max(3,(v/mx)*100).toFixed(1)}%"></div></div><div class="bar-val">${v}</div>`;
@@ -395,10 +391,12 @@ function renderBars(){
 }
 
 let tot=0,onl=0;const fams=new Set();
-function addRow(url,status,tag,type,lat,lon){
+const feedBody=document.getElementById('feedBody');
+
+function addRow(url,status,tag,type){
   const t=new Date().toLocaleTimeString('es-ES');
   const io=(status||'').toLowerCase()==='online';
-  addDot(lat??((Math.random()*120)-60),lon??((Math.random()*320)-160),io);
+  addDot(null,null,io);
   const tg=(tag||'unknown').replace(/[<>"&]/g,'').substring(0,20)||'unknown';
   const ty=(type||'').replace(/[<>"&]/g,'').substring(0,16)||'&mdash;';
   const su=(url||'').replace(/[<>"]/g,'');
@@ -406,8 +404,8 @@ function addRow(url,status,tag,type,lat,lon){
   tr.innerHTML=`<td>${t}</td><td class="url-cell" title="${su}">${su}</td>
     <td>${io?'<span class="badge badge-red">&#9679; ONLINE</span>':`<span class="badge badge-muted">&#9675; ${(status||'?').substring(0,10)}</span>`}</td>
     <td><span class="badge badge-blue">${tg}</span></td><td><span class="badge badge-muted">${ty}</span></td>`;
-  document.getElementById('feedBody').prepend(tr);
-  if(document.getElementById('feedBody').children.length>30) document.getElementById('feedBody').removeChild(document.getElementById('feedBody').lastChild);
+  feedBody.prepend(tr);
+  if(feedBody.children.length>30)feedBody.removeChild(feedBody.lastChild);
   tot++;if(io)onl++;fams.add(tg);fc[tg]=(fc[tg]||0)+1;
   document.getElementById('statTotal').textContent=tot.toLocaleString();
   document.getElementById('statOnline').textContent=onl.toLocaleString();
@@ -416,51 +414,129 @@ function addRow(url,status,tag,type,lat,lon){
   renderBars();
 }
 
-function parseCSV(t){
-  const rows=[];
-  for(const line of t.split('\n')){
-    if(!line.trim()||line.startsWith('#'))continue;
-    const p=[];let c='',q=false;
-    for(const ch of line){
-      if(ch==='"'){q=!q;continue;}
-      if(ch===','&&!q){p.push(c);c='';continue;}
-      c+=ch;
+
+// ── FETCH STRATEGY ────────────────────────────────────────────────────────
+// Tries multiple endpoints/methods in order until one works.
+// Works from GitHub Pages, localhost, and any https origin.
+
+const URLHAUS_ENDPOINTS = [
+  // 1. URLhaus official API v1 (POST, has CORS headers)
+  async () => {
+    const r = await fetch('https://urlhaus-api.abuse.ch/v1/urls/recent/', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'limit=20',
+      cache: 'no-store'
+    });
+    if (!r.ok) throw new Error('API v1: HTTP ' + r.status);
+    const json = await r.json();
+    if (json.query_status !== 'ok') throw new Error('API v1: ' + json.query_status);
+    // Transform API v1 response to common format
+    return (json.urls || []).map(u => ({
+      url: u.url,
+      status: u.url_status,
+      tag: (u.tags && u.tags.length ? u.tags[0] : '') || u.threat || 'unknown',
+      type: u.threat || 'payload'
+    }));
+  },
+
+  // 2. CSV via allorigins CORS proxy
+  async () => {
+    const target = encodeURIComponent('https://urlhaus.abuse.ch/downloads/csv_recent/');
+    const r = await fetch(`https://api.allorigins.win/raw?url=${target}`, {cache:'no-store'});
+    if (!r.ok) throw new Error('allorigins: HTTP ' + r.status);
+    const text = await r.text();
+    return parseCSV(text);
+  },
+
+  // 3. CSV via corsproxy.io
+  async () => {
+    const r = await fetch('https://corsproxy.io/?https://urlhaus.abuse.ch/downloads/csv_recent/', {cache:'no-store'});
+    if (!r.ok) throw new Error('corsproxy: HTTP ' + r.status);
+    const text = await r.text();
+    return parseCSV(text);
+  },
+
+  // 4. Direct CSV (works when server sends CORS headers — may work in future)
+  async () => {
+    const r = await fetch('https://urlhaus.abuse.ch/downloads/csv_recent/', {
+      cache: 'no-store',
+      headers: {'Accept': 'text/plain'}
+    });
+    if (!r.ok) throw new Error('direct: HTTP ' + r.status);
+    const text = await r.text();
+    return parseCSV(text);
+  }
+];
+
+function parseCSV(text) {
+  const rows = [];
+  for (const line of text.split('\n')) {
+    if (!line.trim() || line.startsWith('#')) continue;
+    const p = []; let c = '', q = false;
+    for (const ch of line) {
+      if (ch === '"') { q = !q; continue; }
+      if (ch === ',' && !q) { p.push(c); c = ''; continue; }
+      c += ch;
     }
-    p.push(c);rows.push(p);
+    p.push(c);
+    if (p.length >= 7) {
+      rows.push({ url: p[2], status: p[3], tag: p[6] || p[5] || 'unknown', type: p[5] || 'payload' });
+    }
   }
   return rows;
 }
 
-async function fetchURLhaus(){
-  document.getElementById('statusText').textContent='ACTUALIZANDO…';
-  try{
-    const r=await fetch('https://urlhaus.abuse.ch/downloads/csv_recent/',{cache:'no-store'});
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    const rows=parseCSV(await r.text());
-    for(let i=rows.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[rows[i],rows[j]]=[rows[j],rows[i]];}
-    for(const row of rows.slice(0,8)){
-      if(row.length<7)continue;
-      addRow(row[2],row[3],row[6]||row[5],row[5]);
-      await new Promise(r=>setTimeout(r,500));
+async function fetchURLhaus() {
+  document.getElementById('statusText').textContent = 'ACTUALIZANDO\u2026';
+  
+  let records = null;
+  let usedMethod = '';
+
+  for (let i = 0; i < URLHAUS_ENDPOINTS.length; i++) {
+    try {
+      records = await URLHAUS_ENDPOINTS[i]();
+      if (records && records.length > 0) {
+        usedMethod = ['API v1', 'allorigins', 'corsproxy', 'directo'][i];
+        break;
+      }
+    } catch(e) {
+      console.warn(`URLhaus endpoint ${i+1} failed:`, e.message);
     }
-    document.getElementById('statusText').textContent='EN VIVO';
-  }catch(e){
-    document.getElementById('statusText').textContent='DEMO (sin red)';
-    const demo=[
-      ['http://194.165.16.11/payload/emotet.exe','online','Emotet','exe',52,13],
-      ['http://103.42.56.78/bot/mirai.sh','online','Mirai','elf',35,139],
-      ['http://91.215.153.9/agent/tesla.bin','online','AgentTesla','bin',48,2],
-      ['http://45.142.212.100/xmrig','online','XMRig','elf',37,127],
-      ['http://185.220.101.5/lock/ransom','online','LockBit','bin',51,10],
-      ['http://23.95.132.50/rat/remcos.dll','offline','Remcos','dll',40,-74],
-      ['http://192.3.141.85/phish/login','offline','Phishing','html',-34,-58],
-      ['http://109.234.37.10/loader','online','Loader','bin',55,37],
+  }
+
+  if (records && records.length > 0) {
+    // Shuffle and take 8
+    for (let i = records.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [records[i], records[j]] = [records[j], records[i]];
+    }
+    for (const rec of records.slice(0, 8)) {
+      addRow(rec.url, rec.status, rec.tag, rec.type);
+      await new Promise(res => setTimeout(res, 450));
+    }
+    document.getElementById('statusText').textContent = 'EN VIVO (' + usedMethod + ')';
+  } else {
+    // All endpoints failed — show demo data
+    document.getElementById('statusText').textContent = 'DEMO (sin red)';
+    const demo = [
+      {url:'http://194.165.16.11/payload/emotet.exe', status:'online', tag:'Emotet', type:'exe'},
+      {url:'http://103.42.56.78/bot/mirai.sh',        status:'online', tag:'Mirai',  type:'elf'},
+      {url:'http://91.215.153.9/tesla.bin',            status:'online', tag:'AgentTesla', type:'bin'},
+      {url:'http://45.142.212.100/xmrig',              status:'online', tag:'XMRig', type:'elf'},
+      {url:'http://185.220.101.5/ransom',              status:'online', tag:'LockBit', type:'bin'},
+      {url:'http://23.95.132.50/remcos.dll',           status:'offline',tag:'Remcos', type:'dll'},
     ];
-    for(const d of demo){addRow(d[0],d[1],d[2],d[3],d[4],d[5]);await new Promise(r=>setTimeout(r,380));}
+    for (const d of demo) {
+      addRow(d.url, d.status, d.tag, d.type);
+      await new Promise(res => setTimeout(res, 380));
+    }
   }
 }
+
 fetchURLhaus();
-setInterval(fetchURLhaus,30000);
+setInterval(fetchURLhaus, 30000);
+
 </script>
 </body>
 </html>
